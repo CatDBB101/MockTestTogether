@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mock Test Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <!-- ตั้งค่าให้ Tailwind รองรับ Dark Mode ผ่าน class -->
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+      };
+    </script>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+      body {
+        font-family: 'Inter', sans-serif;
+      }
+      /* Custom Scrollbar แบบมินิมอล */
+      textarea::-webkit-scrollbar {
+        width: 6px;
+      }
+      textarea::-webkit-scrollbar-thumb {
+        background-color: #d1d5db;
+        border-radius: 3px;
+      }
+      .dark textarea::-webkit-scrollbar-thumb {
+        background-color: #4b5563;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-[#f7f7f5] dark:bg-[#191919] text-[#37352f] dark:text-[#EBEBEB] min-h-screen flex items-center justify-center p-4 transition-colors duration-300"
+  >
+    <!-- ปุ่มสลับโหมด Light / Dark Mode -->
+    <button
+      onclick="toggleTheme()"
+      class="fixed top-4 right-4 p-2.5 rounded-md bg-white dark:bg-[#202020] border border-gray-200 dark:border-[#333] shadow-sm text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-[#2a2a2a] transition-all"
+      title="Toggle Theme"
+    >
+      <span id="theme-icon">🌙</span>
+    </button>
+
+    <div
+      id="app-container"
+      class="max-w-2xl w-full bg-white dark:bg-[#202020] rounded-lg shadow-sm p-8 transition-colors duration-300 border border-gray-200 dark:border-[#333]"
+    >
+      <!-- SECTION 1: Menu & Forms -->
+      <div id="menu-section">
+        <h1
+          class="text-2xl font-bold text-center mb-6 text-[#37352f] dark:text-white tracking-tight"
+        >
+          Mock Test Arena
+        </h1>
+
+        <!-- แถบเลือกสลับโหมด -->
+        <div
+          class="flex gap-1 mb-6 bg-[#f7f7f5] dark:bg-[#191919] p-1 rounded-md border border-gray-200 dark:border-[#333]"
+        >
+          <button
+            onclick="setMode('host')"
+            id="btn-mode-host"
+            class="flex-1 py-1.5 px-3 rounded text-sm font-medium bg-white dark:bg-[#2c2c2c] text-[#37352f] dark:text-white shadow-sm border border-gray-200 dark:border-[#444] transition-all"
+          >
+            Host a Game
+          </button>
+          <button
+            onclick="setMode('join')"
+            id="btn-mode-join"
+            class="flex-1 py-1.5 px-3 rounded text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-all bg-transparent border border-transparent"
+          >
+            Join a Game
+          </button>
+        </div>
+
+        <!-- ฟอร์ม Host -->
+        <form id="host-form" class="space-y-4" onsubmit="createRoom(event)">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <input
+              type="text"
+              id="host-name"
+              placeholder="Your Name (Host)"
+              required
+              class="w-full p-2.5 rounded-md bg-[#f9f9f8] dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#555] text-sm"
+            />
+            <input
+              type="number"
+              id="host-questions"
+              placeholder="No. of Questions"
+              required
+              min="1"
+              class="w-full p-2.5 rounded-md bg-[#f9f9f8] dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#555] text-sm"
+            />
+            <input
+              type="number"
+              id="host-choices"
+              placeholder="No. of Choices"
+              required
+              min="2"
+              max="10"
+              class="w-full p-2.5 rounded-md bg-[#f9f9f8] dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#555] text-sm"
+            />
+          </div>
+
+          <button
+            type="button"
+            onclick="copyPrompt()"
+            class="w-full py-2 bg-[#f9f9f8] dark:bg-[#1e1e1e] hover:bg-gray-100 dark:hover:bg-[#2a2a2a] text-sm text-gray-600 dark:text-gray-300 rounded-md border border-gray-200 dark:border-[#333] flex items-center justify-center gap-2 transition-colors"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"
+              />
+            </svg>
+            <span id="copy-btn-text">Copy AI Prompt Template</span>
+          </button>
+
+          <textarea
+            id="quiz-json"
+            placeholder="Paste AI Generated JSON here..."
+            required
+            rows="5"
+            class="w-full p-3 rounded-md bg-[#f9f9f8] dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#555] font-mono text-xs leading-relaxed"
+          ></textarea>
+
+          <div
+            class="flex items-center gap-2 bg-[#f9f9f8] dark:bg-[#1e1e1e] p-3 rounded-md border border-gray-200 dark:border-[#333]"
+          >
+            <input
+              type="checkbox"
+              id="host-answers-last"
+              class="w-4 h-4 text-black dark:text-white border-gray-300 rounded focus:ring-black dark:focus:ring-white cursor-pointer"
+            />
+            <label
+              for="host-answers-last"
+              class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer select-none"
+            >
+              Host must answer last (รอทีมตอบครบ)
+            </label>
+          </div>
+
+          <button
+            type="submit"
+            class="w-full py-2.5 bg-[#2f2f2f] dark:bg-[#EBEBEB] text-white dark:text-[#2f2f2f] rounded-md font-medium hover:bg-black dark:hover:bg-white transition-colors text-sm"
+          >
+            Create Room
+          </button>
+        </form>
+
+        <!-- ฟอร์ม Join -->
+        <form
+          id="join-form"
+          class="hidden space-y-4"
+          onsubmit="joinRoom(event)"
+        >
+          <input
+            type="text"
+            id="join-name"
+            placeholder="Your Name"
+            required
+            class="w-full p-2.5 rounded-md bg-[#f9f9f8] dark:bg-[#1e1e1e] border border-gray-200 dark:border-[#333] focus:outline-none focus:ring-1 focus:ring-gray-300 dark:focus:ring-[#555] text-sm"
+          />
+          <button
+            type="submit"
+            class="w-full py-2.5 bg-[#2f2f2f] dark:bg-[#EBEBEB] text-white dark:text-[#2f2f2f] rounded-md font-medium hover:bg-black dark:hover:bg-white transition-colors text-sm"
+          >
+            Join Game
+          </button>
+        </form>
+      </div>
+
+      <!-- SECTION 2: Lobby -->
+      <div id="lobby-section" class="hidden flex flex-col items-center">
+        <div class="text-center mb-6 mt-4">
+          <div class="inline-flex items-center justify-center mb-2">
+            <span class="relative flex h-3 w-3">
+              <span
+                class="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75"
+              ></span>
+              <span
+                class="relative inline-flex rounded-full h-3 w-3 bg-gray-500"
+              ></span>
+            </span>
+          </div>
+          <h2 class="text-2xl font-bold tracking-tight">Waiting Lobby</h2>
+          <p class="text-gray-500 dark:text-gray-400 text-sm mt-1">
+            Waiting for everyone to join...
+          </p>
+        </div>
+
+        <div
+          class="w-full bg-[#f9f9f8] dark:bg-[#1e1e1e] rounded-md border border-gray-200 dark:border-[#333] p-5 min-h-[150px]"
+        >
+          <div
+            class="flex justify-between items-center mb-4 pb-2 border-b border-gray-200 dark:border-[#333]"
+          >
+            <h3 class="font-semibold text-sm text-gray-700 dark:text-gray-300">
+              Players Joined
+            </h3>
+            <span
+              id="player-count"
+              class="bg-gray-200 dark:bg-[#333] text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full font-medium"
+              >0</span
+            >
+          </div>
+          <ul id="player-list" class="flex flex-wrap gap-2"></ul>
+          <div id="waiting-msg" class="text-center text-gray-400 text-sm py-6">
+            Waiting for players...
+          </div>
+        </div>
+
+        <button
+          id="start-game-btn"
+          onclick="nextQuestion()"
+          class="hidden w-full mt-6 py-2.5 bg-[#2f2f2f] dark:bg-[#EBEBEB] text-white dark:text-[#2f2f2f] rounded-md font-medium hover:bg-black dark:hover:bg-white transition-colors text-sm"
+        >
+          Start Game
+        </button>
+        <p
+          id="wait-host-msg"
+          class="hidden mt-6 text-gray-500 dark:text-gray-400 text-sm"
+        >
+          Waiting for host to start...
+        </p>
+      </div>
+
+      <!-- SECTION 3: Playing -->
+      <div id="playing-section" class="hidden space-y-5">
+        <div
+          class="flex justify-between items-center border-b border-gray-200 dark:border-[#333] pb-3"
+        >
+          <span class="font-semibold text-sm text-gray-500 dark:text-gray-400">
+            Question
+            <span id="q-current" class="text-gray-900 dark:text-white"></span>
+            of <span id="q-total"></span>
+          </span>
+          <span
+            id="q-status"
+            class="text-xs font-medium px-2 py-1 bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-500 rounded"
+          >
+            Waiting for answers...
+          </span>
+        </div>
+
+        <div class="py-4">
+          <h2
+            id="question-text"
+            class="text-lg md:text-xl font-semibold leading-relaxed"
+          ></h2>
+        </div>
+
+        <div id="choices-container" class="space-y-2.5"></div>
+
+        <div class="mt-6 pt-4 border-t border-gray-200 dark:border-[#333]">
+          <h4
+            class="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-3"
+          >
+            Status
+          </h4>
+          <div id="answer-status" class="flex flex-wrap gap-2"></div>
+        </div>
+
+        <button
+          id="next-q-btn"
+          onclick="nextQuestion()"
+          class="hidden w-full py-2.5 bg-[#2f2f2f] dark:bg-[#EBEBEB] text-white dark:text-[#2f2f2f] rounded-md font-medium hover:bg-black dark:hover:bg-white transition-colors text-sm mt-4"
+        >
+          Next Question ➜
+        </button>
+      </div>
+
+      <!-- SECTION 4: Leaderboard -->
+      <div id="end-section" class="hidden flex flex-col items-center space-y-6">
+        <h2 class="text-3xl font-bold mt-4">Test Completed</h2>
+        <div id="leaderboard" class="w-full space-y-4"></div>
+        <button
+          onclick="location.reload()"
+          class="w-full py-2.5 bg-white dark:bg-[#2c2c2c] border border-gray-300 dark:border-[#444] text-gray-700 dark:text-gray-200 rounded-md font-medium hover:bg-gray-50 dark:hover:bg-[#333] transition-colors text-sm"
+        >
+          Return Home
+        </button>
+      </div>
+    </div>
+
+    <script>
+      // -----------------------------------------------------
+      // ระบบเปลี่ยนธีม (Light/Dark Mode)
+      // -----------------------------------------------------
+      function toggleTheme() {
+        document.documentElement.classList.toggle('dark');
+        const isDark = document.documentElement.classList.contains('dark');
+        localStorage.setItem('theme', isDark ? 'dark' : 'light');
+        document.getElementById('theme-icon').innerText = isDark ? '☀️' : '🌙';
+      }
+
+      if (
+        localStorage.getItem('theme') === 'dark' ||
+        (!('theme' in localStorage) &&
+          window.matchMedia('(prefers-color-scheme: dark)').matches)
+      ) {
+        document.documentElement.classList.add('dark');
+        document.getElementById('theme-icon').innerText = '☀️';
+      } else {
+        document.getElementById('theme-icon').innerText = '🌙';
+      }
+
+      // -----------------------------------------------------
+      // ส่วน Logic การเชื่อมต่อหลัก (คง Logic ของคุณ 100%)
+      // -----------------------------------------------------
+      const socket = io();
+      let myRoomCode = '';
+      let amIHost = false;
+      let isHostAnswersLast = false;
+
+      function copyPrompt() {
+        const qty =
+          document.getElementById('host-questions').value || '[Number]';
+        const choices =
+          document.getElementById('host-choices').value || '[Number]';
+        const promptText = `Build a mock test from all source i give you.\n\nQuantity ${qty} questions\nEach question choice number ${choices} choices alphabet)\nEach of the choices is of similar length.\n\nOutput as json like this example template.\n[\n  {\n    "question" : "",\n    "choices" : ["choice 1", "choice 2", "choice 3"],\n    "answer": 0,\n    "explanations": [\n      "เหตุผลที่ choice 1 ถูกหรือผิด",\n      "เหตุผลที่ choice 2 ถูกหรือผิด",\n      "เหตุผลที่ choice 3 ถูกหรือผิด"\n    ]\n  }\n]\n(Note: 'answer' must be the index number of the correct choice, starting from 0 to ${
+          !isNaN(choices) ? choices - 1 : 'N'
+        }. 'explanations' array length must exactly match 'choices' array length.)`;
+
+        navigator.clipboard
+          .writeText(promptText)
+          .then(() => {
+            const btnText = document.getElementById('copy-btn-text');
+            const originalText = btnText.innerText;
+            btnText.innerText = 'Copied!';
+            setTimeout(() => (btnText.innerText = originalText), 2000);
+          })
+          .catch((err) => {
+            const textArea = document.createElement('textarea');
+            textArea.value = promptText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+          });
+      }
+
+      function setMode(mode) {
+        const isHost = mode === 'host';
+        document
+          .getElementById('host-form')
+          .classList.toggle('hidden', !isHost);
+        document.getElementById('join-form').classList.toggle('hidden', isHost);
+
+        const btnHost = document.getElementById('btn-mode-host');
+        const btnJoin = document.getElementById('btn-mode-join');
+
+        if (isHost) {
+          btnHost.className =
+            'flex-1 py-1.5 px-3 rounded text-sm font-medium bg-white dark:bg-[#2c2c2c] text-[#37352f] dark:text-white shadow-sm border border-gray-200 dark:border-[#444] transition-all';
+          btnJoin.className =
+            'flex-1 py-1.5 px-3 rounded text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-all bg-transparent border border-transparent';
+        } else {
+          btnJoin.className =
+            'flex-1 py-1.5 px-3 rounded text-sm font-medium bg-white dark:bg-[#2c2c2c] text-[#37352f] dark:text-white shadow-sm border border-gray-200 dark:border-[#444] transition-all';
+          btnHost.className =
+            'flex-1 py-1.5 px-3 rounded text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-[#2a2a2a] transition-all bg-transparent border border-transparent';
+        }
+      }
+
+      function showSection(sectionId) {
+        [
+          'menu-section',
+          'lobby-section',
+          'playing-section',
+          'end-section',
+        ].forEach((id) => {
+          document.getElementById(id).classList.add('hidden');
+        });
+        document.getElementById(sectionId).classList.remove('hidden');
+      }
+
+      function createRoom(e) {
+        e.preventDefault();
+        const hostName = document.getElementById('host-name').value;
+        const questionsJson = document.getElementById('quiz-json').value;
+        const hostAnswersLast =
+          document.getElementById('host-answers-last').checked;
+        socket.emit('createRoom', { hostName, questionsJson, hostAnswersLast });
+      }
+
+      function joinRoom(e) {
+        e.preventDefault();
+        const playerName = document.getElementById('join-name').value;
+        socket.emit('joinRoom', { playerName });
+      }
+
+      function submitAnswer(index) {
+        const buttons = document.querySelectorAll('.choice-btn');
+        buttons.forEach((btn) => {
+          btn.disabled = true;
+          btn.classList.add('opacity-50', 'cursor-not-allowed');
+          btn.classList.remove('hover:bg-gray-50', 'dark:hover:bg-[#2a2a2a]');
+        });
+
+        buttons[index].classList.remove('opacity-50');
+        buttons[index].classList.add(
+          'selected-answer',
+          'border-gray-900',
+          'dark:border-gray-100',
+          'bg-gray-50',
+          'dark:bg-[#2c2c2c]',
+          'ring-1',
+          'ring-gray-900',
+          'dark:ring-gray-100'
+        );
+
+        socket.emit('submitAnswer', {
+          roomCode: myRoomCode,
+          answerIndex: index,
+        });
+      }
+
+      function nextQuestion() {
+        socket.emit('nextQuestion', myRoomCode);
+      }
+
+      socket.on('roomCreated', (data) => {
+        myRoomCode = data.roomCode;
+        amIHost = data.isHost;
+        isHostAnswersLast = data.hostAnswersLast;
+        document.getElementById('start-game-btn').classList.remove('hidden');
+        showSection('lobby-section');
+      });
+
+      socket.on('joinedRoom', (data) => {
+        myRoomCode = data.roomCode;
+        amIHost = data.isHost;
+        isHostAnswersLast = data.hostAnswersLast;
+        if (!amIHost)
+          document.getElementById('wait-host-msg').classList.remove('hidden');
+        showSection('lobby-section');
+      });
+
+      socket.on('updatePlayers', (players) => {
+        const list = document.getElementById('player-list');
+        const count = document.getElementById('player-count');
+        const waitingMsg = document.getElementById('waiting-msg');
+
+        count.innerText = players.length;
+        if (players.length > 0) waitingMsg.classList.add('hidden');
+
+        list.innerHTML = players
+          .map(
+            (p) => `
+            <li class="bg-white dark:bg-[#2c2c2c] border border-gray-200 dark:border-[#444] py-1.5 px-3 rounded-md text-sm font-medium flex items-center gap-2 shadow-sm">
+                <div class="w-1.5 h-1.5 rounded-full bg-green-500"></div>
+                <span class="truncate">${p.name}</span>
+            </li>
+        `
+          )
+          .join('');
+      });
+
+      socket.on('newQuestion', (data) => {
+        showSection('playing-section');
+        document.getElementById('q-current').innerText = data.index + 1;
+        document.getElementById('q-total').innerText = data.total;
+        document.getElementById('question-text').innerText = data.question;
+        document.getElementById('next-q-btn').classList.add('hidden');
+        document.getElementById('answer-status').innerHTML = '';
+
+        const container = document.getElementById('choices-container');
+        container.innerHTML = '';
+
+        const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        data.choices.forEach((choice, idx) => {
+          const btn = document.createElement('button');
+          btn.className =
+            'choice-btn w-full text-left p-4 rounded-md border border-gray-200 dark:border-[#444] bg-white dark:bg-[#202020] transition-colors duration-200 flex flex-col font-medium text-sm md:text-base text-gray-800 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-[#2a2a2a]';
+
+          btn.innerHTML = `<div class="flex items-center w-full"><span class="inline-flex items-center justify-center w-7 h-7 rounded bg-gray-100 dark:bg-[#333] text-gray-500 dark:text-gray-400 font-semibold mr-3 shrink-0 text-sm border border-gray-200 dark:border-[#444]">${
+            letters[idx] || idx + 1
+          }</span> <span class="flex-1">${choice}</span></div>`;
+          btn.onclick = () => submitAnswer(idx);
+          container.appendChild(btn);
+        });
+      });
+
+      socket.on('answerStatus', (status) => {
+        const container = document.getElementById('answer-status');
+        container.innerHTML = status
+          .map(
+            (p) => `
+            <div class="px-2.5 py-1 rounded text-xs font-medium flex items-center gap-1.5 ${
+              p.answered
+                ? 'bg-gray-100 dark:bg-[#333] text-gray-800 dark:text-gray-200 border border-gray-200 dark:border-[#444]'
+                : 'bg-transparent text-gray-400 dark:text-gray-500 border border-dashed border-gray-200 dark:border-[#333]'
+            }">
+                ${p.answered ? '✓' : '...'} ${p.name}
+            </div>
+        `
+          )
+          .join('');
+
+        if (amIHost && isHostAnswersLast) {
+          const otherPlayers = status.filter((p) => !p.isHost);
+          const othersAllAnswered = otherPlayers.every((p) => p.answered);
+          const myStatus = status.find((p) => p.isHost);
+          const buttons = document.querySelectorAll('.choice-btn');
+          const qStatus = document.getElementById('q-status');
+
+          if (myStatus && !myStatus.answered) {
+            if (otherPlayers.length > 0 && !othersAllAnswered) {
+              qStatus.innerText = 'Waiting for team...';
+              qStatus.className =
+                'text-xs font-semibold px-2 py-1 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50 rounded';
+              buttons.forEach((btn) => {
+                btn.disabled = true;
+                btn.classList.add('opacity-50', 'cursor-not-allowed');
+                btn.classList.remove(
+                  'hover:bg-gray-50',
+                  'dark:hover:bg-[#2a2a2a]'
+                );
+              });
+            } else {
+              qStatus.innerText = 'Your Turn!';
+              qStatus.className =
+                'text-xs font-semibold px-2 py-1 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 border border-blue-200 dark:border-blue-900/50 rounded';
+              buttons.forEach((btn) => {
+                btn.disabled = false;
+                btn.classList.remove('opacity-50', 'cursor-not-allowed');
+                btn.classList.add(
+                  'hover:bg-gray-50',
+                  'dark:hover:bg-[#2a2a2a]'
+                );
+              });
+            }
+          }
+        } else {
+          const qStatus = document.getElementById('q-status');
+          if (qStatus.innerText !== 'All Answered!') {
+            qStatus.innerText = 'Waiting for answers...';
+            qStatus.className =
+              'text-xs font-semibold px-2 py-1 bg-yellow-50 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-500 border border-yellow-200 dark:border-yellow-900/50 rounded';
+          }
+        }
+      });
+
+      socket.on('revealAnswer', (data) => {
+        const qStatus = document.getElementById('q-status');
+        qStatus.innerText = 'All Answered!';
+        qStatus.className =
+          'text-xs font-semibold px-2 py-1 bg-green-50 text-green-700 dark:bg-green-900/30 dark:text-green-400 border border-green-200 dark:border-green-900/50 rounded';
+
+        const buttons = document.querySelectorAll('.choice-btn');
+
+        buttons.forEach((btn, idx) => {
+          btn.disabled = true;
+
+          if (!btn.querySelector('.explanation-box')) {
+            const explanationText =
+              data.explanations && data.explanations[idx]
+                ? data.explanations[idx]
+                : 'ไม่มีคำอธิบายสำหรับข้อนี้';
+            const expDiv = document.createElement('div');
+            expDiv.className =
+              'explanation-box mt-3 p-3 text-sm rounded-md bg-gray-50 dark:bg-[#2a2a2a] border border-gray-200 dark:border-[#444] w-full text-gray-600 dark:text-gray-300 flex items-start gap-2';
+            expDiv.innerHTML = `<span>💡</span> <span class="leading-relaxed"><b>เหตุผล:</b> ${explanationText}</span>`;
+            btn.appendChild(expDiv);
+          }
+
+          btn.classList.remove(
+            'border-gray-900',
+            'dark:border-gray-100',
+            'ring-1',
+            'ring-gray-900',
+            'dark:ring-gray-100',
+            'bg-gray-50',
+            'dark:bg-[#2c2c2c]'
+          );
+
+          if (idx === data.correctAnswerIndex) {
+            btn.classList.add(
+              'bg-green-50',
+              'dark:bg-[#1c2c22]',
+              'border-green-300',
+              'dark:border-green-800/80',
+              'text-green-900',
+              'dark:text-green-100'
+            );
+          } else {
+            if (btn.classList.contains('selected-answer')) {
+              btn.classList.add(
+                'bg-red-50',
+                'dark:bg-[#321c1c]',
+                'border-red-300',
+                'dark:border-red-900/80',
+                'text-red-900',
+                'dark:text-red-100'
+              );
+            } else {
+              btn.classList.add('opacity-60');
+            }
+          }
+        });
+
+        if (amIHost) {
+          document.getElementById('next-q-btn').classList.remove('hidden');
+        }
+      });
+
+      socket.on('gameEnded', (players) => {
+        showSection('end-section');
+        const lb = document.getElementById('leaderboard');
+
+        // 🔴 ใช้ socket.id ตรงกับ Logic ปัจจุบันของคุณ 100%
+        const myData = players.find((p) => p.id === socket.id);
+
+        if (myData) {
+          const historyHTML = myData.answersHistory
+            .map((h) => {
+              const expListHTML =
+                h.explanations && h.explanations.length > 0
+                  ? h.explanations
+                      .map(
+                        (exp, i) =>
+                          `<div class="mb-1.5"><span class="font-semibold text-gray-700 dark:text-gray-300">Choice ${
+                            i + 1
+                          }:</span> ${exp}</div>`
+                      )
+                      .join('')
+                  : '<div class="text-gray-400">ไม่มีคำอธิบาย</div>';
+
+              return `
+                    <div class="text-sm p-5 mb-4 rounded-lg bg-white dark:bg-[#202020] border ${
+                      h.isCorrect
+                        ? 'border-green-200 dark:border-green-900/50'
+                        : 'border-red-200 dark:border-red-900/50'
+                    } shadow-sm">
+                        <div class="font-semibold text-gray-900 dark:text-white text-base mb-3">Q${
+                          h.questionNumber
+                        }. ${h.questionText}</div>
+                        <div class="flex flex-col gap-1.5">
+                            <span class="${
+                              h.isCorrect
+                                ? 'text-green-600 dark:text-green-400'
+                                : 'text-red-600 dark:text-red-400'
+                            } font-medium">
+                                ${h.isCorrect ? '✅' : '❌'} Your Answer: ${
+                h.selectedAnswerText
+              }
+                            </span>
+                            ${
+                              !h.isCorrect
+                                ? `<span class="text-gray-500 dark:text-gray-400 text-sm">👉 Correct Answer: <span class="font-medium text-green-600 dark:text-green-400">${h.correctAnswerText}</span></span>`
+                                : ''
+                            }
+                        </div>
+                        <div class="mt-4 p-3.5 bg-gray-50 dark:bg-[#1e1e1e] rounded-md border border-gray-100 dark:border-[#333]">
+                            <span class="text-gray-800 dark:text-gray-200 font-semibold text-xs uppercase tracking-widest block mb-2">Explanations</span>
+                            <div class="text-gray-600 dark:text-gray-400 leading-relaxed text-sm">
+                                ${expListHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            })
+            .join('');
+
+          lb.innerHTML = `
+                <div class="flex flex-col p-6 rounded-lg bg-white dark:bg-[#202020] border border-gray-200 dark:border-[#333] shadow-sm">
+                    <div class="flex items-center justify-between mb-4 border-b border-gray-100 dark:border-[#333] pb-4">
+                        <h3 class="font-semibold text-xl text-gray-900 dark:text-white">Result: ${myData.name}</h3>
+                        <div class="font-bold text-3xl text-gray-900 dark:text-white">${myData.score} <span class="text-base font-medium text-gray-500">pts</span></div>
+                    </div>
+                    <div class="mt-2 space-y-2">
+                        <h4 class="text-xs text-gray-400 uppercase tracking-widest mb-3 font-semibold">Review Answers</h4>
+                        ${historyHTML}
+                    </div>
+                </div>
+            `;
+        }
+      });
+
+      socket.on('error', (msg) => {
+        alert('Error: ' + msg);
+      });
+    </script>
+  </body>
+</html>

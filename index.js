@@ -5,8 +5,16 @@ const { Server } = require('socket.io');
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
-const PORT = 3000;
+// 🔴 แก้ไข 1: เพิ่ม CORS อนุญาตให้ทุกเว็บเชื่อมต่อได้
+const io = new Server(server, {
+  cors: {
+    origin: '*', // หากใช้จริงสามารถเปลี่ยนเป็น ["https://your-vercel-domain.com", "http://localhost:3000"] ได้
+    methods: ['GET', 'POST'],
+  },
+});
+
+// 🔴 แก้ไข 2: ให้รองรับ Port ของ Render
+const PORT = process.env.PORT || 3000;
 
 app.use(express.static(path.join(__dirname, 'public')));
 

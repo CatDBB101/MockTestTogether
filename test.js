@@ -1,7 +1,7 @@
 const { io } = require('socket.io-client');
 
 // 🔴 ตั้งค่า URL เป็น Localhost ก่อน (ถ้าคุณเอา Backend ขึ้น Render/Railway แล้วค่อยเปลี่ยน URL)
-const SERVER_URL = 'httpxs://mocktesttogether.onrender.com/';
+const SERVER_URL = 'https://mocktesttogether.onrender.com/';
 const TOTAL_BOTS = 50; // จำนวนบอทที่ต้องการทดสอบ
 const JOIN_DELAY_MS = 0;
 
